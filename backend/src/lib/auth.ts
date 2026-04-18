@@ -3,10 +3,19 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "./prisma.ts";
 import { Role } from "../../generated/prisma/enums.ts";
 
+const trustedOrigins = (process.env.TRUSTED_ORIGINS ?? "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+if (trustedOrigins.length === 0) {
+  throw new Error("TRUSTED_ORIGINS must be set (comma-separated list of allowed origins)");
+}
+
 export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   emailAndPassword: { enabled: true, disableSignUp: true },
-  trustedOrigins: ["http://localhost:5173"],
+  trustedOrigins,
   user: {
     additionalFields: {
       role: {

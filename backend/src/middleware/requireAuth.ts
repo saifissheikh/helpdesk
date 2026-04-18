@@ -13,7 +13,11 @@ declare global {
   }
 }
 
-export async function requireAuth(req: Request, res: Response, next: NextFunction) {
+export async function requireAuth(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   const session = await auth.api.getSession({
     headers: fromNodeHeaders(req.headers),
   });
