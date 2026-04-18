@@ -1,10 +1,16 @@
 import express, { type Request, type Response } from "express";
+import { toNodeHandler } from "better-auth/node";
+import { auth } from "./src/lib/auth.ts";
+import { requireAuth } from "./src/middleware/requireAuth.ts";
 import { prisma } from "./src/lib/prisma.ts";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3000);
 
 app.disable("x-powered-by");
+
+app.all("/api/auth/*splat", toNodeHandler(auth));
+
 app.use(express.json());
 
 app.get("/health", async (_req: Request, res: Response) => {
@@ -20,8 +26,8 @@ app.get("/health", async (_req: Request, res: Response) => {
   }
 });
 
-app.get("/api/hello", (_req: Request, res: Response) => {
-  res.json({ message: "Hello from the helpdesk backend" });
+app.get("/api/me", requireAuth, (req: Request, res: Response) => {
+  res.json({ user: req.user, session: req.session });
 });
 
 const server = app.listen(port, () => {

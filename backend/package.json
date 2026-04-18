@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
+    "db:seed": "prisma db seed",
     "db:studio": "prisma studio"
   },
   "devDependencies": {
@@ -24,6 +25,7 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.7.0",
     "@prisma/client": "^7.7.0",
+    "better-auth": "^1.6.5",
     "express": "^5.2.1",
     "pg": "^8.20.0"
   }
