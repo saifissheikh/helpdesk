@@ -15,7 +15,7 @@ export default function Navbar({ user }: NavbarProps) {
 
   return (
     <header className="border-b border-gray-200 bg-white">
-      <div className="max-w-3xl mx-auto flex items-center justify-between px-8 py-4">
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-8 py-4">
         <Link to="/" className="text-xl font-bold text-gray-900">
           Helpdesk
         </Link>

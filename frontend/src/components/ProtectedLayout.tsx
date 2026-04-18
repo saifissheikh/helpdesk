@@ -11,7 +11,7 @@ export default function ProtectedLayout() {
   return (
     <>
       <Navbar user={session.user} />
-      <main className="max-w-3xl mx-auto p-8">
+      <main className="max-w-7xl mx-auto p-8">
         <Outlet />
       </main>
     </>

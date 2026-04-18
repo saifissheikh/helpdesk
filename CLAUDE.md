@@ -11,9 +11,9 @@ AI-powered ticket management system. Support emails become tickets; Claude class
 ## Structure
 
 ```
-backend/    Express 5 + TypeScript on Bun       (port 3000)
-frontend/   React 19 + Vite 8 + TS + Tailwind 4 (port 5173)
-            + React Router 7
+backend/    Express 5 + TypeScript on Bun                   (port 3000)
+frontend/   React 19 + Vite 8 + TS + Tailwind 4 + shadcn/ui (port 5173)
+            + React Router 7 + React Hook Form + Zod
 ```
 
 `backend/CLAUDE.md` has backend-specific runtime conventions.
@@ -27,6 +27,8 @@ frontend/   React 19 + Vite 8 + TS + Tailwind 4 (port 5173)
 - Auth: **database-backed sessions** (HTTP-only cookies), not JWT
 - Email: **SendGrid** or **Mailgun** for inbound/outbound
 - AI: **Anthropic Claude** via `@anthropic-ai/sdk`
+- UI: **shadcn/ui** (radix/nova preset, `neutral` base color, CSS variables) — components live in `frontend/src/components/ui/`, `@/` is aliased to `frontend/src/`
+- Forms: **React Hook Form** + **Zod** via `@hookform/resolvers/zod`
 
 ## Development commands
 
@@ -58,4 +60,6 @@ Prefer Context7 over web search and over training-data recall — APIs drift. Sk
 - Keep `implementation-plan.md` phases honest: non-AI ticket flow must work before AI is layered on; email ingestion before AI touches it.
 - When adding new features, check which phase they belong to and whether prerequisites are done.
 - Default to Tailwind utility classes for styling; avoid new CSS files.
+- For UI, prefer shadcn components from `@/components/ui/` (Button, Input, Label, Card, …) over hand-rolled markup; add new ones with `bunx --bun shadcn@latest add <name>`. Use theme tokens (`bg-primary`, `text-destructive`, `border-input`, `text-muted-foreground`) instead of hardcoded palette classes like `bg-blue-600` / `text-red-700` so dark mode stays consistent.
+- Compose classNames via `cn` from `@/lib/utils`.
 - Server code: validate at system boundaries (HTTP in, email in, AI in), trust internal calls.
