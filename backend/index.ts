@@ -1,8 +1,13 @@
-import express, { type Request, type Response } from "express";
+import express, {
+  type NextFunction,
+  type Request,
+  type Response,
+} from "express";
 import helmet from "helmet";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./src/lib/auth.ts";
 import { requireAuth } from "./src/middleware/requireAuth.ts";
+import { requireAdmin } from "./src/middleware/requireAdmin.ts";
 import { prisma } from "./src/lib/prisma.ts";
 
 const app = express();
@@ -33,6 +38,35 @@ app.get("/health", async (_req: Request, res: Response) => {
 
 app.get("/api/me", requireAuth, (req: Request, res: Response) => {
   res.json({ user: req.user });
+});
+
+app.get(
+  "/api/users",
+  requireAuth,
+  requireAdmin,
+  async (_req: Request, res: Response) => {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    res.json({ users });
+  },
+);
+
+app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  console.error(err);
+  res.status(500).json({
+    error: "Internal server error",
+    ...(isProduction
+      ? {}
+      : { detail: err instanceof Error ? err.message : String(err) }),
+  });
 });
 
 const server = app.listen(port, () => {

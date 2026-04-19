@@ -30,6 +30,8 @@ e2e/        Playwright end-to-end tests (own package)       (backend 3001 / fron
 - AI: **Anthropic Claude** via `@anthropic-ai/sdk`
 - UI: **shadcn/ui** (radix/nova preset, `neutral` base color, CSS variables) — components live in `frontend/src/components/ui/`, `@/` is aliased to `frontend/src/`
 - Forms: **React Hook Form** + **Zod** via `@hookform/resolvers/zod`
+- Client HTTP: **axios** — don't use raw `fetch` in frontend code
+- Server state / data fetching: **TanStack Query** (`@tanstack/react-query`) — `QueryClient` + `QueryClientProvider` wired in `frontend/src/main.tsx`; use `useQuery` / `useMutation` in pages, not bare `useEffect` + `useState`
 
 ## Development commands
 
@@ -58,10 +60,10 @@ Prefer Context7 over web search and over training-data recall — APIs drift. Sk
 
 ## End-to-end tests
 
-Playwright lives in `e2e/` as its own Bun package. It boots its own backend (port 3001) + frontend (port 5174) via Playwright's `webServer`, against a separate `helpdesk_test` Postgres database that `e2e/global-setup.ts` creates, migrates, and seeds.
+Playwright lives in `e2e/` as its own Bun package. It boots its own backend (port 3001) + frontend (port 5174) via Playwright's `webServer`, against a separate `helpdesk_test` Postgres database that `e2e/scripts/setup-test-db.ts` creates, migrates (`prisma migrate deploy` on a manually-wiped `public` schema), and seeds. That script runs as `pretest` before Playwright — not as a `globalSetup`, because Playwright waits for `webServer.url` to return 2xx *before* `globalSetup` fires and the backend's `/health` probe depends on the schema already existing.
 
 - **Never write Playwright tests yourself.** Delegate to the `playwright-e2e-author` agent via the Agent tool — it owns selector choices, fixtures, auth/storageState, page objects, and mocking conventions for this project. Invoke it whenever the user asks for e2e tests, even a single smoke test.
-- The agent will not re-do the harness setup; `e2e/playwright.config.ts`, `e2e/global-setup.ts`, and `e2e/.env.test.example` already exist. If something about the harness needs to change, say so explicitly in the agent's prompt.
+- The agent will not re-do the harness setup; `e2e/playwright.config.ts`, `e2e/scripts/setup-test-db.ts`, and `e2e/.env.test.example` already exist. If something about the harness needs to change, say so explicitly in the agent's prompt.
 - Tests go in `e2e/tests/*.spec.ts`. Run with `cd e2e && bun run test` (copy `.env.test.example` → `.env.test` first).
 - Frontend `vite.config.ts` reads `BACKEND_URL` so the e2e frontend can proxy to the e2e backend — don't hardcode `localhost:3000` there.
 
@@ -72,5 +74,6 @@ Playwright lives in `e2e/` as its own Bun package. It boots its own backend (por
 - Default to Tailwind utility classes for styling; avoid new CSS files.
 - For UI, prefer shadcn components from `@/components/ui/` (Button, Input, Label, Card, …) over hand-rolled markup; add new ones with `bunx --bun shadcn@latest add <name>`. Use theme tokens (`bg-primary`, `text-destructive`, `border-input`, `text-muted-foreground`) instead of hardcoded palette classes like `bg-blue-600` / `text-red-700` so dark mode stays consistent.
 - Compose classNames via `cn` from `@/lib/utils`.
+- Data fetching pattern: `useQuery({ queryKey, queryFn })` where `queryFn` does `axios.get(...)` and returns `res.data`. Forward the `signal` TanStack Query passes into `queryFn` to axios (`{ signal }`) so unmount cancels the request. Don't hand-roll `useEffect` + `useState` + `AbortController` for reads, and don't call `axios` directly from a component body.
 - Auth-gated routes live under `<ProtectedLayout>`; admin-only routes nest inside `<AdminRoute>` (`frontend/src/components/AdminRoute.tsx`), which redirects non-admins to `/`. The navbar hides admin-only links based on `user.role === "admin"`. Route guards are UI-only — always enforce the same rule on the server too.
 - Server code: validate at system boundaries (HTTP in, email in, AI in), trust internal calls.
