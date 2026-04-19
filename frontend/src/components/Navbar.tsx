@@ -1,12 +1,15 @@
-import { Link, useNavigate } from "react-router";
-import { authClient } from "../lib/auth-client";
+import { Link, NavLink, useNavigate } from "react-router";
+import { authClient } from "@/lib/auth-client";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type NavbarProps = {
-  user: { name: string };
+  user: { name: string; role?: string };
 };
 
 export default function Navbar({ user }: NavbarProps) {
   const navigate = useNavigate();
+  const isAdmin = user.role === "admin";
 
   const handleSignOut = async () => {
     await authClient.signOut();
@@ -14,22 +17,48 @@ export default function Navbar({ user }: NavbarProps) {
   };
 
   return (
-    <header className="border-b border-gray-200 bg-white">
+    <header className="border-b bg-background">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-8 py-4">
-        <Link to="/" className="text-xl font-bold text-gray-900">
-          Helpdesk
-        </Link>
+        <div className="flex items-center gap-6">
+          <Link to="/" className="font-heading text-xl font-bold">
+            Helpdesk
+          </Link>
+          <nav className="flex items-center gap-1">
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) =>
+                cn(
+                  "rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground",
+                  isActive && "bg-muted text-foreground",
+                )
+              }
+            >
+              Dashboard
+            </NavLink>
+            {isAdmin && (
+              <NavLink
+                to="/users"
+                className={({ isActive }) =>
+                  cn(
+                    "rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground",
+                    isActive && "bg-muted text-foreground",
+                  )
+                }
+              >
+                Users
+              </NavLink>
+            )}
+          </nav>
+        </div>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-600">
-            Signed in as <span className="font-medium text-gray-900">{user.name}</span>
+          <span className="text-sm text-muted-foreground">
+            Signed in as{" "}
+            <span className="font-medium text-foreground">{user.name}</span>
           </span>
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="rounded border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
+          <Button type="button" variant="outline" size="sm" onClick={handleSignOut}>
             Sign out
-          </button>
+          </Button>
         </div>
       </div>
     </header>
