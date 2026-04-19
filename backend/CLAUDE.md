@@ -37,3 +37,13 @@ Auth is handled by **Better Auth** (`better-auth`) with the **Prisma adapter** a
 - For role-based authorization, branch on `req.user.role` inside handlers or add a thin `requireRole("admin")` wrapper — don't reimplement session lookup.
 - Frontend uses `better-auth/react` (`authClient`) hitting same-origin `/api/auth/*` through the Vite proxy; cookies flow automatically.
 - New env vars: set `TRUSTED_ORIGINS` (e.g. `http://localhost:5173`) and any Better Auth secrets (`BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`) in `backend/.env` — Bun autoloads it.
+
+### Seeding users
+
+Because `disableSignUp: true` locks the public `/api/auth/sign-up/email` route, users must be created out-of-band. Use the seed script:
+
+```bash
+bun run scripts/create-user.ts <email> <password> [name] [role]
+# e.g.
+bun run scripts/create-user.ts admin@example.com 'str0ng!pw' 'Admin' admin
+```

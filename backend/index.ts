@@ -1,4 +1,5 @@
 import express, { type Request, type Response } from "express";
+import helmet from "helmet";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./src/lib/auth.ts";
 import { requireAuth } from "./src/middleware/requireAuth.ts";
@@ -6,8 +7,10 @@ import { prisma } from "./src/lib/prisma.ts";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3000);
+const isProduction = process.env.NODE_ENV === "production";
 
 app.disable("x-powered-by");
+app.use(helmet());
 
 app.all("/api/auth/*splat", toNodeHandler(auth));
 
@@ -21,13 +24,15 @@ app.get("/health", async (_req: Request, res: Response) => {
     res.status(503).json({
       status: "degraded",
       db: "unreachable",
-      error: err instanceof Error ? err.message : String(err),
+      ...(isProduction
+        ? {}
+        : { error: err instanceof Error ? err.message : String(err) }),
     });
   }
 });
 
 app.get("/api/me", requireAuth, (req: Request, res: Response) => {
-  res.json({ user: req.user, session: req.session });
+  res.json({ user: req.user });
 });
 
 const server = app.listen(port, () => {

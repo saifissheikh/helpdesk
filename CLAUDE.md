@@ -62,4 +62,5 @@ Prefer Context7 over web search and over training-data recall — APIs drift. Sk
 - Default to Tailwind utility classes for styling; avoid new CSS files.
 - For UI, prefer shadcn components from `@/components/ui/` (Button, Input, Label, Card, …) over hand-rolled markup; add new ones with `bunx --bun shadcn@latest add <name>`. Use theme tokens (`bg-primary`, `text-destructive`, `border-input`, `text-muted-foreground`) instead of hardcoded palette classes like `bg-blue-600` / `text-red-700` so dark mode stays consistent.
 - Compose classNames via `cn` from `@/lib/utils`.
+- Auth-gated routes live under `<ProtectedLayout>`; admin-only routes nest inside `<AdminRoute>` (`frontend/src/components/AdminRoute.tsx`), which redirects non-admins to `/`. The navbar hides admin-only links based on `user.role === "admin"`. Route guards are UI-only — always enforce the same rule on the server too.
 - Server code: validate at system boundaries (HTTP in, email in, AI in), trust internal calls.

@@ -14,7 +14,12 @@ if (trustedOrigins.length === 0) {
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: "postgresql" }),
-  emailAndPassword: { enabled: true, disableSignUp: true },
+  emailAndPassword: {
+    enabled: true,
+    disableSignUp: true,
+    revokeSessionsOnPasswordReset: true,
+  },
+  rateLimit: { enabled: true },
   trustedOrigins,
   user: {
     additionalFields: {
