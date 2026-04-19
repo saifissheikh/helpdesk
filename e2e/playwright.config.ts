@@ -24,6 +24,12 @@ const BETTER_AUTH_SECRET =
 const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL ?? "admin@test.com";
 const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD ?? "password123";
 
+// Exported so fixtures can read them without re-parsing env.
+export { ADMIN_EMAIL, ADMIN_PASSWORD };
+export const AGENT_EMAIL = process.env.TEST_AGENT_EMAIL ?? "agent@test.com";
+export const AGENT_PASSWORD = process.env.TEST_AGENT_PASSWORD ?? "password123";
+export { BACKEND_URL, FRONTEND_URL };
+
 const backendDir = path.resolve(__dirname, "../backend");
 const frontendDir = path.resolve(__dirname, "../frontend");
 
@@ -35,7 +41,10 @@ export default defineConfig({
   workers: 1,
   reporter: process.env.CI ? [["github"], ["html"]] : "html",
 
-  globalSetup: path.join(__dirname, "global-setup.ts"),
+  // DB setup runs in `scripts/setup-test-db.ts` before `playwright test`
+  // (see package.json "test" script). It can't live in globalSetup because
+  // Playwright waits for webServer.url to respond 2xx *before* globalSetup
+  // runs, and the backend's /health check fails until the schema exists.
 
   use: {
     baseURL: FRONTEND_URL,

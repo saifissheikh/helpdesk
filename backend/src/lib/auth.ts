@@ -19,7 +19,7 @@ export const auth = betterAuth({
     disableSignUp: true,
     revokeSessionsOnPasswordReset: true,
   },
-  rateLimit: { enabled: true },
+  rateLimit: { enabled: process.env.NODE_ENV !== "test" },
   trustedOrigins,
   user: {
     additionalFields: {

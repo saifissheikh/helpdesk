@@ -2,28 +2,23 @@ import { auth } from "../src/lib/auth.ts";
 import { prisma } from "../src/lib/prisma.ts";
 import { Role } from "../generated/prisma/enums.ts";
 
-async function main() {
-  const email = process.env.SEED_ADMIN_EMAIL;
-  const password = process.env.SEED_ADMIN_PASSWORD;
-
-  if (!email || !password) {
-    throw new Error(
-      "SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD must be set (see .env.example)",
-    );
-  }
-
-  const ctx = await auth.$context;
-
+async function seedUser(
+  ctx: Awaited<typeof auth.$context>,
+  email: string,
+  password: string,
+  name: string,
+  role: Role,
+): Promise<void> {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
-    if (existing.role !== Role.admin) {
+    if (existing.role !== role) {
       await prisma.user.update({
         where: { id: existing.id },
-        data: { role: Role.admin },
+        data: { role },
       });
-      console.log(`Promoted existing user ${email} to admin`);
+      console.log(`Updated ${email} to role "${role}"`);
     } else {
-      console.log(`Admin user ${email} already exists`);
+      console.log(`User ${email} (${role}) already exists`);
     }
     return;
   }
@@ -35,9 +30,9 @@ async function main() {
     model: "user",
     data: {
       email,
-      name: "Admin",
+      name,
       emailVerified: true,
-      role: Role.admin,
+      role,
       createdAt: now,
       updatedAt: now,
     },
@@ -55,7 +50,30 @@ async function main() {
     },
   });
 
-  console.log(`Seeded admin user ${email}`);
+  console.log(`Seeded ${role} user: ${email}`);
+}
+
+async function main() {
+  const adminEmail = process.env.SEED_ADMIN_EMAIL;
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+
+  if (!adminEmail || !adminPassword) {
+    throw new Error(
+      "SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD must be set (see .env.example)",
+    );
+  }
+
+  const ctx = await auth.$context;
+
+  // Always seed the admin user.
+  await seedUser(ctx, adminEmail, adminPassword, "Admin", Role.admin);
+
+  // Seed the agent user only when the env vars are provided (e2e test runs).
+  const agentEmail = process.env.SEED_AGENT_EMAIL;
+  const agentPassword = process.env.SEED_AGENT_PASSWORD;
+  if (agentEmail && agentPassword) {
+    await seedUser(ctx, agentEmail, agentPassword, "Agent", Role.agent);
+  }
 }
 
 main()
