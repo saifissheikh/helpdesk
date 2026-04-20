@@ -10,11 +10,14 @@ AI-powered ticket management system. Support emails become tickets; Claude class
 
 ## Structure
 
+This repo is a **Bun workspace** (root `package.json` lists `backend`, `frontend`, `e2e`, `core` as workspaces). Run `bun install` from the repo root — not from a sub-package.
+
 ```
 backend/    Express 5 + TypeScript on Bun                   (port 3000)
 frontend/   React 19 + Vite 8 + TS + Tailwind 4 + shadcn/ui (port 5173)
             + React Router 7 + React Hook Form + Zod
 e2e/        Playwright end-to-end tests (own package)       (backend 3001 / frontend 5174)
+core/       @helpdesk/core — shared Zod schemas + types, imported by both backend and frontend
 ```
 
 `backend/CLAUDE.md` has backend-specific runtime conventions.
@@ -36,9 +39,8 @@ e2e/        Playwright end-to-end tests (own package)       (backend 3001 / fron
 ## Development commands
 
 ```bash
-# install
-cd backend && bun install
-cd frontend && bun install
+# install (once, from repo root — resolves all workspaces)
+bun install
 
 # run (two terminals)
 cd backend && bun run dev      # http://localhost:3000
@@ -46,6 +48,17 @@ cd frontend && bun run dev     # http://localhost:5173
 ```
 
 Vite proxies `/api` and `/health` → backend, so the browser calls same-origin.
+
+## Shared schemas (`@helpdesk/core`)
+
+Zod schemas and the types derived from them **must live in `core/src/schemas/`** and be imported by both client and server — never redefine the same shape in two places. This keeps validation rules (length limits, error messages, enum values) and their TypeScript types identical on both sides of the wire.
+
+- Add a new schema to `core/src/schemas/<topic>.ts` and export it alongside `type TInput = z.infer<typeof schema>`.
+- Add a new sub-path export to `core/package.json` under `"exports"` (e.g. `"./schemas/ticket": "./src/schemas/ticket.ts"`) so consumers can import from `@helpdesk/core/schemas/ticket`.
+- Import in backend route handlers: `import { createUserSchema } from "@helpdesk/core/schemas/user";` — validate request bodies with `schema.safeParse(req.body)`.
+- Import in frontend forms: `import { createUserSchema, type CreateUserInput } from "@helpdesk/core/schemas/user";` — pass to `useForm({ resolver: zodResolver(schema) })` and use the inferred type as the form type.
+- If a rule differs between client and server (rare — e.g. server-only admin-tier checks), extend the shared schema with `.extend({ ... })` rather than forking it.
+- The core package exports `.ts` source directly via Bun workspace symlinks; no build step. Restart `bun run dev` if you add a new export path to `core/package.json`.
 
 ## Fetching library documentation
 

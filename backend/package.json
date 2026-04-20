@@ -23,11 +23,13 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@helpdesk/core": "workspace:*",
     "@prisma/adapter-pg": "^7.7.0",
     "@prisma/client": "^7.7.0",
     "better-auth": "^1.6.5",
     "express": "^5.2.1",
     "helmet": "^8.1.0",
-    "pg": "^8.20.0"
+    "pg": "^8.20.0",
+    "zod": "^4.3.6"
   }
 }

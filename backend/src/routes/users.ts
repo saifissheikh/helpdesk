@@ -1,0 +1,85 @@
+import { Router, type Request, type Response } from "express";
+import { z } from "zod";
+import { createUserSchema } from "@helpdesk/core/schemas/user";
+import { auth } from "../lib/auth.ts";
+import { prisma } from "../lib/prisma.ts";
+import { requireAuth } from "../middleware/requireAuth.ts";
+import { requireAdmin } from "../middleware/requireAdmin.ts";
+import { Role } from "../../generated/prisma/enums.ts";
+
+export const usersRouter = Router();
+
+usersRouter.use(requireAuth, requireAdmin);
+
+usersRouter.get("/", async (_req: Request, res: Response) => {
+  const users = await prisma.user.findMany({
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json({ users });
+});
+
+usersRouter.post("/", async (req: Request, res: Response) => {
+  const parsed = createUserSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({
+      error: "Invalid input",
+      fieldErrors: z.flattenError(parsed.error).fieldErrors,
+    });
+    return;
+  }
+  const { name, email, password } = parsed.data;
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    res.status(409).json({ error: "Email already in use" });
+    return;
+  }
+
+  const ctx = await auth.$context;
+  const hashedPassword = await ctx.password.hash(password);
+  const now = new Date();
+
+  const user = await ctx.adapter.create<{ id: string }>({
+    model: "user",
+    data: {
+      email,
+      name,
+      emailVerified: true,
+      role: Role.agent,
+      createdAt: now,
+      updatedAt: now,
+    },
+  });
+
+  await ctx.adapter.create({
+    model: "account",
+    data: {
+      providerId: "credential",
+      accountId: user.id,
+      userId: user.id,
+      password: hashedPassword,
+      createdAt: now,
+      updatedAt: now,
+    },
+  });
+
+  const created = await prisma.user.findUniqueOrThrow({
+    where: { id: user.id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      createdAt: true,
+    },
+  });
+
+  res.status(201).json({ user: created });
+});
