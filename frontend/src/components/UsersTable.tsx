@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -12,21 +12,23 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Role } from "@helpdesk/core/schemas/user";
 import type { EditableUser } from "@/components/UserFormDialog";
 
 type UserRow = {
   id: string;
   name: string;
   email: string;
-  role: "admin" | "agent";
+  role: Role;
   createdAt: string;
 };
 
 type UsersTableProps = {
   onEdit: (user: EditableUser) => void;
+  onDelete: (userId: string) => void;
 };
 
-export function UsersTable({ onEdit }: UsersTableProps) {
+export function UsersTable({ onEdit, onDelete }: UsersTableProps) {
   const { data: users, isPending, error } = useQuery({
     queryKey: ["users"],
     queryFn: async ({ signal }) => {
@@ -98,16 +100,28 @@ export function UsersTable({ onEdit }: UsersTableProps) {
                 {new Date(u.createdAt).toLocaleDateString()}
               </TableCell>
               <TableCell className="text-right">
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={`Edit ${u.name}`}
-                  onClick={() =>
-                    onEdit({ id: u.id, name: u.name, email: u.email })
-                  }
-                >
-                  <Pencil />
-                </Button>
+                <div className="flex items-center justify-end gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Edit ${u.name}`}
+                    onClick={() =>
+                      onEdit({ id: u.id, name: u.name, email: u.email })
+                    }
+                  >
+                    <Pencil />
+                  </Button>
+                  {u.role !== Role.admin && (
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Delete ${u.name}`}
+                      onClick={() => onDelete(u.id)}
+                    >
+                      <Trash2 className="text-destructive" />
+                    </Button>
+                  )}
+                </div>
               </TableCell>
             </TableRow>
           ))

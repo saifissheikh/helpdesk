@@ -2,6 +2,7 @@ import { Link, NavLink, useNavigate } from "react-router";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Role } from "@helpdesk/core/schemas/user";
 
 type NavbarProps = {
   user: { name: string; role?: string };
@@ -9,7 +10,7 @@ type NavbarProps = {
 
 export default function Navbar({ user }: NavbarProps) {
   const navigate = useNavigate();
-  const isAdmin = user.role === "admin";
+  const isAdmin = user.role === Role.admin;
 
   const handleSignOut = async () => {
     await authClient.signOut();
