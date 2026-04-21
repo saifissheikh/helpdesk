@@ -1,10 +1,12 @@
+import { useEffect } from "react";
 import axios from "axios";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import {
   createUserSchema,
-  type CreateUserInput,
+  updateUserSchema,
+  type UpdateUserInput,
 } from "@helpdesk/core/schemas/user";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,16 +20,26 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-type CreateUserDialogProps = {
-  open: boolean;
+export type EditableUser = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+export type UserFormMode =
+  | { mode: "create" }
+  | { mode: "edit"; user: EditableUser };
+
+type UserFormDialogProps = {
+  state: UserFormMode | null;
   onOpenChange: (open: boolean) => void;
 };
 
-export function CreateUserDialog({
-  open,
-  onOpenChange,
-}: CreateUserDialogProps) {
+const EMPTY_VALUES: UpdateUserInput = { name: "", email: "", password: "" };
+
+export function UserFormDialog({ state, onOpenChange }: UserFormDialogProps) {
   const queryClient = useQueryClient();
+  const isEdit = state?.mode === "edit";
 
   const {
     register,
@@ -35,53 +47,66 @@ export function CreateUserDialog({
     reset,
     setError,
     formState: { errors },
-  } = useForm<CreateUserInput>({
-    resolver: zodResolver(createUserSchema),
-    defaultValues: { name: "", email: "", password: "" },
+  } = useForm<UpdateUserInput>({
+    resolver: zodResolver(isEdit ? updateUserSchema : createUserSchema),
+    defaultValues: EMPTY_VALUES,
   });
 
-  const createUser = useMutation({
-    mutationFn: async (values: CreateUserInput) => {
-      await axios.post("/api/users", values);
+  useEffect(() => {
+    if (state?.mode === "create") {
+      reset(EMPTY_VALUES);
+    } else if (state?.mode === "edit") {
+      reset({ name: state.user.name, email: state.user.email, password: "" });
+    }
+  }, [state, reset]);
+
+  const submitUser = useMutation({
+    mutationFn: async (values: UpdateUserInput) => {
+      if (!state) return;
+      if (state.mode === "create") {
+        await axios.post("/api/users", values);
+      } else {
+        await axios.patch(`/api/users/${state.user.id}`, values);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
-      reset();
       onOpenChange(false);
     },
     onError: (err) => {
       const message = axios.isAxiosError(err)
         ? (err.response?.data as { error?: string } | undefined)?.error ??
           err.message
-        : "Failed to create user";
+        : "Failed to save user";
       setError("root", { message });
     },
   });
 
   const handleOpenChange = (next: boolean) => {
     onOpenChange(next);
-    if (!next) reset();
+    if (!next) reset(EMPTY_VALUES);
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={state !== null} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create user</DialogTitle>
+          <DialogTitle>{isEdit ? "Edit user" : "Create user"}</DialogTitle>
           <DialogDescription>
-            Add a new agent to the helpdesk. They can sign in with the password
-            you set here.
+            {isEdit
+              ? "Update this user's details. Leave the password blank to keep their current password."
+              : "Add a new agent to the helpdesk. They can sign in with the password you set here."}
           </DialogDescription>
         </DialogHeader>
         <form
-          onSubmit={handleSubmit((values) => createUser.mutate(values))}
+          onSubmit={handleSubmit((values) => submitUser.mutate(values))}
           noValidate
           className="space-y-4"
         >
           <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="user-name">Name</Label>
             <Input
-              id="name"
+              id="user-name"
               autoComplete="name"
               aria-invalid={errors.name ? true : undefined}
               {...register("name")}
@@ -92,9 +117,9 @@ export function CreateUserDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="user-email">Email</Label>
             <Input
-              id="email"
+              id="user-email"
               type="email"
               autoComplete="email"
               aria-invalid={errors.email ? true : undefined}
@@ -106,11 +131,14 @@ export function CreateUserDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="user-password">Password</Label>
             <Input
-              id="password"
+              id="user-password"
               type="password"
               autoComplete="new-password"
+              placeholder={
+                isEdit ? "Leave blank to keep current password" : undefined
+              }
               aria-invalid={errors.password ? true : undefined}
               {...register("password")}
             />
@@ -130,12 +158,18 @@ export function CreateUserDialog({
               type="button"
               variant="outline"
               onClick={() => handleOpenChange(false)}
-              disabled={createUser.isPending}
+              disabled={submitUser.isPending}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={createUser.isPending}>
-              {createUser.isPending ? "Creating…" : "Create"}
+            <Button type="submit" disabled={submitUser.isPending}>
+              {submitUser.isPending
+                ? isEdit
+                  ? "Saving…"
+                  : "Creating…"
+                : isEdit
+                  ? "Save"
+                  : "Create"}
             </Button>
           </DialogFooter>
         </form>

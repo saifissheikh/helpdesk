@@ -1,5 +1,6 @@
 import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
+import { Pencil } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -10,6 +11,8 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import type { EditableUser } from "@/components/UserFormDialog";
 
 type UserRow = {
   id: string;
@@ -19,7 +22,11 @@ type UserRow = {
   createdAt: string;
 };
 
-export function UsersTable() {
+type UsersTableProps = {
+  onEdit: (user: EditableUser) => void;
+};
+
+export function UsersTable({ onEdit }: UsersTableProps) {
   const { data: users, isPending, error } = useQuery({
     queryKey: ["users"],
     queryFn: async ({ signal }) => {
@@ -48,6 +55,7 @@ export function UsersTable() {
           <TableHead>Email</TableHead>
           <TableHead>Role</TableHead>
           <TableHead>Created</TableHead>
+          <TableHead className="w-16 text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -66,12 +74,15 @@ export function UsersTable() {
               <TableCell>
                 <Skeleton className="h-4 w-24" />
               </TableCell>
+              <TableCell>
+                <Skeleton className="ml-auto h-7 w-7" />
+              </TableCell>
             </TableRow>
           ))
         ) : users.length === 0 ? (
           <TableRow>
             <TableCell
-              colSpan={4}
+              colSpan={5}
               className="py-8 text-center text-muted-foreground"
             >
               No users found.
@@ -85,6 +96,18 @@ export function UsersTable() {
               <TableCell className="capitalize">{u.role}</TableCell>
               <TableCell>
                 {new Date(u.createdAt).toLocaleDateString()}
+              </TableCell>
+              <TableCell className="text-right">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Edit ${u.name}`}
+                  onClick={() =>
+                    onEdit({ id: u.id, name: u.name, email: u.email })
+                  }
+                >
+                  <Pencil />
+                </Button>
               </TableCell>
             </TableRow>
           ))
