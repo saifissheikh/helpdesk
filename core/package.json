@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./schemas/user": "./src/schemas/user.ts"
+    "./schemas/user": "./src/schemas/user.ts",
+    "./schemas/ticket": "./src/schemas/ticket.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

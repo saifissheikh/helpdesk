@@ -9,6 +9,7 @@ import { auth } from "./src/lib/auth.ts";
 import { requireAuth } from "./src/middleware/requireAuth.ts";
 import { prisma } from "./src/lib/prisma.ts";
 import { usersRouter } from "./src/routes/users.ts";
+import { webhooksRouter } from "./src/routes/webhooks.ts";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -41,6 +42,7 @@ app.get("/api/me", requireAuth, (req: Request, res: Response) => {
 });
 
 app.use("/api/users", usersRouter);
+app.use("/api", webhooksRouter);
 
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   console.error(err);
