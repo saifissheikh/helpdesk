@@ -8,6 +8,7 @@ import {
   createColumnHelper,
   type SortingState,
 } from "@tanstack/react-table";
+import { Link } from "react-router";
 import { ArrowDown, ArrowUp, ArrowUpDown, Search, X, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Table,
@@ -56,7 +57,14 @@ const columnHelper = createColumnHelper<TicketRow>();
 const columns = [
   columnHelper.accessor("subject", {
     header: "Subject",
-    cell: (info) => <span className="font-medium">{info.getValue()}</span>,
+    cell: (info) => (
+      <Link
+        to={`/tickets/${info.row.original.id}`}
+        className="font-medium hover:underline"
+      >
+        {info.getValue()}
+      </Link>
+    ),
   }),
   columnHelper.accessor("fromName", {
     header: "From",
@@ -86,6 +94,14 @@ const columns = [
     header: "Category",
     cell: (info) => (
       <span className="text-sm">{formatCategory(info.getValue())}</span>
+    ),
+  }),
+  columnHelper.accessor("assignedTo", {
+    header: "Assigned",
+    cell: (info) => (
+      <span className="text-sm">
+        {info.getValue()?.name ?? <span className="text-muted-foreground">—</span>}
+      </span>
     ),
   }),
   columnHelper.accessor("createdAt", {

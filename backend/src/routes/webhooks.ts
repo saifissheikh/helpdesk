@@ -7,6 +7,7 @@ import {
   ticketSortDirSchema,
   ticketStatusFilterSchema,
   ticketCategoryFilterSchema,
+  assignTicketSchema,
 } from "@helpdesk/core/schemas/ticket";
 import { prisma } from "../lib/prisma.ts";
 import { requireAuth } from "../middleware/requireAuth.ts";
@@ -82,6 +83,7 @@ webhooksRouter.get("/tickets", requireAuth, async (req: Request, res: Response) 
         fromName: true,
         status: true,
         category: true,
+        assignedTo: { select: { id: true, name: true } },
         createdAt: true,
       },
       where,
@@ -93,4 +95,82 @@ webhooksRouter.get("/tickets", requireAuth, async (req: Request, res: Response) 
   ]);
 
   res.json({ tickets, total, page, pageSize });
+});
+
+webhooksRouter.get("/tickets/:id", requireAuth, async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    res.status(400).json({ error: "Invalid ticket ID" });
+    return;
+  }
+
+  const ticket = await prisma.ticket.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      subject: true,
+      body: true,
+      fromEmail: true,
+      fromName: true,
+      status: true,
+      category: true,
+      assignedTo: { select: { id: true, name: true } },
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  if (!ticket) {
+    res.status(404).json({ error: "Ticket not found" });
+    return;
+  }
+
+  res.json({ ticket });
+});
+
+webhooksRouter.patch("/tickets/:id/assign", requireAuth, async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    res.status(400).json({ error: "Invalid ticket ID" });
+    return;
+  }
+
+  const parsed = assignTicketSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({
+      error: "Invalid input",
+      fieldErrors: z.flattenError(parsed.error).fieldErrors,
+    });
+    return;
+  }
+
+  const { assignedToId } = parsed.data;
+
+  if (assignedToId !== null) {
+    const user = await prisma.user.findUnique({ where: { id: assignedToId, deletedAt: null } });
+    if (!user) {
+      res.status(404).json({ error: "Agent not found" });
+      return;
+    }
+  }
+
+  const ticket = await prisma.ticket.update({
+    where: { id },
+    data: { assignedToId },
+    select: {
+      id: true,
+      assignedTo: { select: { id: true, name: true } },
+    },
+  });
+
+  res.json({ ticket });
+});
+
+webhooksRouter.get("/agents", requireAuth, async (_req: Request, res: Response) => {
+  const agents = await prisma.user.findMany({
+    where: { deletedAt: null },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+  res.json({ agents });
 });

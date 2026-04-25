@@ -42,6 +42,15 @@ export const ticketSortDirSchema = z.enum(["asc", "desc"]);
 export type TicketSortBy = z.infer<typeof ticketSortBySchema>;
 export type TicketSortDir = z.infer<typeof ticketSortDirSchema>;
 
+export const assigneeSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+});
+
+export const assignTicketSchema = z.object({
+  assignedToId: z.string().trim().min(1, "Assignee ID must not be empty").nullable(),
+});
+
 export const ticketRowSchema = z.object({
   id: z.number(),
   subject: z.string(),
@@ -49,10 +58,19 @@ export const ticketRowSchema = z.object({
   fromName: z.string(),
   status: ticketStatusSchema,
   category: ticketCategorySchema.nullable(),
+  assignedTo: assigneeSchema.nullable(),
   createdAt: z.string(),
+});
+
+export const ticketDetailSchema = ticketRowSchema.extend({
+  body: z.string(),
+  updatedAt: z.string(),
 });
 
 export type TicketStatus = z.infer<typeof ticketStatusSchema>;
 export type TicketCategory = z.infer<typeof ticketCategorySchema>;
 export type InboundEmail = z.infer<typeof inboundEmailSchema>;
 export type TicketRow = z.infer<typeof ticketRowSchema>;
+export type TicketDetail = z.infer<typeof ticketDetailSchema>;
+export type Assignee = z.infer<typeof assigneeSchema>;
+export type AssignTicket = z.infer<typeof assignTicketSchema>;
