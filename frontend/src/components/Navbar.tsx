@@ -37,6 +37,17 @@ export default function Navbar({ user }: NavbarProps) {
             >
               Dashboard
             </NavLink>
+            <NavLink
+              to="/tickets"
+              className={({ isActive }) =>
+                cn(
+                  "rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground",
+                  isActive && "bg-muted text-foreground",
+                )
+              }
+            >
+              Tickets
+            </NavLink>
             {isAdmin && (
               <NavLink
                 to="/users"

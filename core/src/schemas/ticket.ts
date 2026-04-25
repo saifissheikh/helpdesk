@@ -15,6 +15,44 @@ export const inboundEmailSchema = z.object({
   messageId: z.string().optional(),
 });
 
+export const ticketStatusFilterSchema = z.enum([
+  "all",
+  "open",
+  "resolved",
+  "closed",
+]);
+export const ticketCategoryFilterSchema = z.enum([
+  "all",
+  "general_question",
+  "technical_question",
+  "refund_request",
+  "uncategorized",
+]);
+export type TicketStatusFilter = z.infer<typeof ticketStatusFilterSchema>;
+export type TicketCategoryFilter = z.infer<typeof ticketCategoryFilterSchema>;
+
+export const ticketSortBySchema = z.enum([
+  "subject",
+  "fromName",
+  "status",
+  "category",
+  "createdAt",
+]);
+export const ticketSortDirSchema = z.enum(["asc", "desc"]);
+export type TicketSortBy = z.infer<typeof ticketSortBySchema>;
+export type TicketSortDir = z.infer<typeof ticketSortDirSchema>;
+
+export const ticketRowSchema = z.object({
+  id: z.number(),
+  subject: z.string(),
+  fromEmail: z.string(),
+  fromName: z.string(),
+  status: ticketStatusSchema,
+  category: ticketCategorySchema.nullable(),
+  createdAt: z.string(),
+});
+
 export type TicketStatus = z.infer<typeof ticketStatusSchema>;
 export type TicketCategory = z.infer<typeof ticketCategorySchema>;
 export type InboundEmail = z.infer<typeof inboundEmailSchema>;
+export type TicketRow = z.infer<typeof ticketRowSchema>;
