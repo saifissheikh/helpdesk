@@ -47,6 +47,11 @@ export const assigneeSchema = z.object({
   name: z.string(),
 });
 
+export const updateTicketSchema = z.object({
+  status: ticketStatusSchema.optional(),
+  category: ticketCategorySchema.nullable().optional(),
+});
+
 export const assignTicketSchema = z.object({
   assignedToId: z.string().trim().min(1, "Assignee ID must not be empty").nullable(),
 });
@@ -72,5 +77,23 @@ export type TicketCategory = z.infer<typeof ticketCategorySchema>;
 export type InboundEmail = z.infer<typeof inboundEmailSchema>;
 export type TicketRow = z.infer<typeof ticketRowSchema>;
 export type TicketDetail = z.infer<typeof ticketDetailSchema>;
+export const messageDirSchema = z.enum(["outbound", "internal"]);
+
+export const createMessageSchema = z.object({
+  body: z.string().trim().min(1, "Reply body is required"),
+  direction: messageDirSchema,
+});
+
+export const ticketMessageSchema = z.object({
+  id: z.number(),
+  body: z.string(),
+  direction: z.enum(["inbound", "outbound", "internal"]),
+  author: z.object({ id: z.string(), name: z.string() }).nullable(),
+  createdAt: z.string(),
+});
+
 export type Assignee = z.infer<typeof assigneeSchema>;
 export type AssignTicket = z.infer<typeof assignTicketSchema>;
+export type UpdateTicket = z.infer<typeof updateTicketSchema>;
+export type TicketMessage = z.infer<typeof ticketMessageSchema>;
+export type CreateMessage = z.infer<typeof createMessageSchema>;

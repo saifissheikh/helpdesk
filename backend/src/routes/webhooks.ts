@@ -8,6 +8,8 @@ import {
   ticketStatusFilterSchema,
   ticketCategoryFilterSchema,
   assignTicketSchema,
+  updateTicketSchema,
+  createMessageSchema,
 } from "@helpdesk/core/schemas/ticket";
 import { prisma } from "../lib/prisma.ts";
 import { requireAuth } from "../middleware/requireAuth.ts";
@@ -128,6 +130,41 @@ webhooksRouter.get("/tickets/:id", requireAuth, async (req: Request, res: Respon
   res.json({ ticket });
 });
 
+webhooksRouter.patch("/tickets/:id", requireAuth, async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    res.status(400).json({ error: "Invalid ticket ID" });
+    return;
+  }
+
+  const parsed = updateTicketSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({
+      error: "Invalid input",
+      fieldErrors: z.flattenError(parsed.error).fieldErrors,
+    });
+    return;
+  }
+
+  const existing = await prisma.ticket.findUnique({ where: { id } });
+  if (!existing) {
+    res.status(404).json({ error: "Ticket not found" });
+    return;
+  }
+
+  const ticket = await prisma.ticket.update({
+    where: { id },
+    data: parsed.data,
+    select: {
+      id: true,
+      status: true,
+      category: true,
+    },
+  });
+
+  res.json({ ticket });
+});
+
 webhooksRouter.patch("/tickets/:id/assign", requireAuth, async (req: Request, res: Response) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id < 1) {
@@ -173,4 +210,69 @@ webhooksRouter.get("/agents", requireAuth, async (_req: Request, res: Response) 
     orderBy: { name: "asc" },
   });
   res.json({ agents });
+});
+
+const messageSelect = {
+  id: true,
+  body: true,
+  direction: true,
+  author: { select: { id: true, name: true } },
+  createdAt: true,
+} as const;
+
+webhooksRouter.get("/tickets/:id/messages", requireAuth, async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    res.status(400).json({ error: "Invalid ticket ID" });
+    return;
+  }
+
+  const ticket = await prisma.ticket.findUnique({ where: { id }, select: { id: true } });
+  if (!ticket) {
+    res.status(404).json({ error: "Ticket not found" });
+    return;
+  }
+
+  const messages = await prisma.ticketMessage.findMany({
+    where: { ticketId: id },
+    select: messageSelect,
+    orderBy: { createdAt: "asc" },
+  });
+
+  res.json({ messages });
+});
+
+webhooksRouter.post("/tickets/:id/messages", requireAuth, async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    res.status(400).json({ error: "Invalid ticket ID" });
+    return;
+  }
+
+  const parsed = createMessageSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({
+      error: "Invalid input",
+      fieldErrors: z.flattenError(parsed.error).fieldErrors,
+    });
+    return;
+  }
+
+  const ticket = await prisma.ticket.findUnique({ where: { id }, select: { id: true } });
+  if (!ticket) {
+    res.status(404).json({ error: "Ticket not found" });
+    return;
+  }
+
+  const message = await prisma.ticketMessage.create({
+    data: {
+      ticketId: id,
+      authorId: req.user.id,
+      body: parsed.data.body,
+      direction: parsed.data.direction,
+    },
+    select: messageSelect,
+  });
+
+  res.status(201).json({ message });
 });

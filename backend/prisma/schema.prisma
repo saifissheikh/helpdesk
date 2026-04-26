@@ -13,18 +13,19 @@ datasource db {
 }
 
 model User {
-  id              String    @id
-  name            String
-  email           String
-  emailVerified   Boolean   @default(false)
-  image           String?
-  role            Role      @default(agent)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  deletedAt       DateTime?
-  sessions        Session[]
-  accounts        Account[]
-  assignedTickets Ticket[]  @relation("AssignedTickets")
+  id               String          @id
+  name             String
+  email            String
+  emailVerified    Boolean         @default(false)
+  image            String?
+  role             Role            @default(agent)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  deletedAt        DateTime?
+  sessions         Session[]
+  accounts         Account[]
+  assignedTickets  Ticket[]        @relation("AssignedTickets")
+  authoredMessages TicketMessage[] @relation("AuthoredMessages")
 
   @@unique([email])
   @@map("user")
@@ -106,8 +107,28 @@ model Ticket {
   messageId    String?         @unique
   assignedToId String?
   assignedTo   User?           @relation("AssignedTickets", fields: [assignedToId], references: [id])
+  messages     TicketMessage[]
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 
   @@map("ticket")
+}
+
+enum MessageDirection {
+  inbound
+  outbound
+  internal
+}
+
+model TicketMessage {
+  id        Int              @id @default(autoincrement())
+  ticketId  Int
+  ticket    Ticket           @relation(fields: [ticketId], references: [id])
+  authorId  String?
+  author    User?            @relation("AuthoredMessages", fields: [authorId], references: [id])
+  body      String
+  direction MessageDirection
+  createdAt DateTime         @default(now())
+
+  @@map("ticket_message")
 }
